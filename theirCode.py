@@ -23,13 +23,13 @@ def calculate_angle(a, b, c):
 
 # Start video capture and pose detection
 cap = cv2.VideoCapture(0)
-cap.set(3, 1280)  # Width
-cap.set(4, 720)   # Height
+cap.set(3, 2000)  # Width
+cap.set(4, 1000)   # Height
 
-# ... (same imports and setup code)
 
 with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
-    calibration_angles = []
+    calibration_shoulder_angles = []
+    calibration_neck_angles = []
     calibration_frames = 0
     is_calibrated = False
     shoulder_threshold = None
@@ -57,34 +57,47 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 int(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x * image.shape[1]),
                 int(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y * image.shape[0])
             )
+            left_ear = (
+                int(landmarks[mp_pose.PoseLandmark.LEFT_EAR].x * image.shape[1]),
+                int(landmarks[mp_pose.PoseLandmark.LEFT_EAR].y * image.shape[0])
+            )
+            right_ear = (
+                int(landmarks[mp_pose.PoseLandmark.RIGHT_EAR].x * image.shape[1]),
+                int(landmarks[mp_pose.PoseLandmark.RIGHT_EAR].y * image.shape[0])
+            )
 
             # Calculate shoulder angle
-            vertical_point = (right_shoulder[0], 0)
-            angle = calculate_angle(left_shoulder, right_shoulder, vertical_point)
+            shoulder_angle = calculate_angle(left_shoulder, right_shoulder,  (right_shoulder[0], 0))
+            neck_angle = calculate_angle(left_ear, left_shoulder, (left_shoulder[0], 0))
 
             # Calibration phase: collect 30 frames of "good posture"
             if not is_calibrated and calibration_frames < 30:
-                calibration_angles.append(angle)
+                calibration_shoulder_angles.append(shoulder_angle)
+                calibration_neck_angles.append(neck_angle)
                 calibration_frames += 1
-                cv2.putText(image, f"Calibrating... {calibration_frames}/30", (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                cv2.putText(frame, f"Calibrating... {calibration_frames}/30", (10, 30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
             elif not is_calibrated:
-                shoulder_threshold = np.mean(calibration_angles) - 10  # simple offset
+                shoulder_threshold = np.mean(calibration_shoulder_angles) - 10
+                neck_threshold = np.mean(calibration_neck_angles) - 10
                 is_calibrated = True
-                print(f"Calibration done. Threshold: {shoulder_threshold:.1f}")
+                print(f"Calibration complete. Shoulder threshold: {shoulder_threshold:.1f}, Neck threshold: {neck_threshold:.1f}")
 
-            # Posture feedback
+
             if is_calibrated:
-                if angle < shoulder_threshold:
-                    color = (0, 0, 255)  # Red (bad posture)
-                    status = "Bad Posture"
+                if shoulder_angle < shoulder_threshold or neck_angle < neck_threshold:
+                    status = "Poor Posture"
+                    color = (0, 0, 255)  # Red
                 else:
-                    color = (0, 255, 0)  # Green (good posture)
                     status = "Good Posture"
+                    color = (0, 255, 0)  # Green
 
-                cv2.putText(image, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-                cv2.putText(image, f"Angle: {angle:.1f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-
+                cv2.putText(frame, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+                cv2.putText(frame, f"Shoulder Angle: {shoulder_angle:.1f}/{shoulder_threshold:.1f}", (10, 60), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+                cv2.putText(frame, f"Neck Angle: {neck_angle:.1f}/{neck_threshold:.1f}", (10, 90), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+                
             # Draw landmarks
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
