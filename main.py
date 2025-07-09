@@ -27,6 +27,7 @@ while cap.isOpened():
     cv2.imshow('Mediapipe Feed', frame)
     if cv2.waitKey(10) & 0xFF == ord('q'):
        break
+# monkey ah add
 
 cap.release()
 cv2.destroyAllWindows()
