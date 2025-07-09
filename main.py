@@ -50,27 +50,36 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                              int(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y * frame.shape[0]))
             right_hip = (int(landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x * image.shape[1]),
                          int(landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y * image.shape[0]))
-            shoulder_angle = calculate_angle(left_shoulder, right_shoulder, right_hip)
+            left_hip = (int(landmarks[mp_pose.PoseLandmark.LEFT_HIP].x * image.shape[1]),
+                         int(landmarks[mp_pose.PoseLandmark.LEFT_HIP].y * image.shape[0]))
+            right_shoulder_angle = calculate_angle(left_shoulder, right_shoulder, right_hip)
+            left_shoulder_angle = calculate_angle(right_shoulder, left_shoulder, left_hip)
+
             
             left_ear = (int(landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].x * frame.shape[1]),
                              int(landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].y * frame.shape[0]))
+            right_ear = (int(landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].x * frame.shape[1]),
+                             int(landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].y * frame.shape[0]))
             nose = (int(landmarks[mp_pose.PoseLandmark.NOSE].x * image.shape[1]),
                     int(landmarks[mp_pose.PoseLandmark.NOSE].y * image.shape[0]))
-            neck_angle = calculate_angle(left_ear, left_shoulder, nose)
+            left_neck_angle = calculate_angle(left_ear, left_shoulder, nose)
+            right_neck_angle = calculate_angle(right_ear, right_shoulder, nose)
 
             shoulder_threshold = 35
             neck_threshold = 40
 
-            if shoulder_angle < shoulder_threshold or neck_angle < neck_threshold:
+            if left_shoulder_angle < shoulder_threshold or right_shoulder_angle < shoulder_threshold or left_neck_angle < neck_threshold or right_neck_angle < neck_threshold:
                 posture_status = "Bad Boy"
                 color = (0, 0, 255)
             else:
                 posture_status = "Good Boy"
                 color = (0, 255, 0)
 
-            cv2.putText(image, posture_status, (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 3, cv2.LINE_AA)            
-            cv2.putText(image, "Shoulder Angle:" + str(shoulder_angle), (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
-            cv2.putText(image, "Neck Angle:" + str(neck_angle), (100, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 1, cv2.LINE_AA)
+            cv2.putText(image, posture_status, (50, 50), cv2.FONT_HERSHEY_DUPLEX, 2, color, 3, cv2.LINE_AA)            
+            cv2.putText(image, "Left Shoulder Angle:" + str(left_shoulder_angle), (50, 100), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(image, "Right Shoulder Angle:" + str(right_shoulder_angle), (50, 150), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(image, "Left Neck Angle:" + str(left_neck_angle), (50, 200), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(image, "Right Neck Angle:" + str(right_neck_angle), (50, 250), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 255, 0), 2, cv2.LINE_AA)
 
         except:
             pass
