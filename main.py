@@ -8,26 +8,32 @@ import os
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-pose = mp_pose.Pose(
-    static_image_mode=False,  # Tells MediaPipe whether you're processing individual static images
-    min_detection_confidence=0.5,  # Sets the threshold for how confident the model must be before it accepts a pose detection.
-    min_tracking_confidence=0.5  # Sets how confident the model must be in tracking a pose between frames
-)
-cap = cv2.VideoCapture(0)
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        continue
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BAYER_BG2RGB)
-    results = pose.process(rgb_frame)
+with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
 
-    if results.pose_landmarks:
-        landmarks = results.pose_landmarks.landmarks
+    cap = cv2.VideoCapture(0)
+    while cap.isOpened():
+        ret, frame = cap.read()
 
-    cv2.imshow('Mediapipe Feed', frame)
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-       break
-# monkey ah add
+        if not ret:
+            continue
 
-cap.release()
-cv2.destroyAllWindows()
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image.flags.writeable = False
+
+        results = pose.process(image)
+
+        image.flags.writeable = True
+        image = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                                mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2),
+                                mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
+                                )
+
+        cv2.imshow('Mediapipe Feed', image)
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
+    # monkey ah add
+
+    cap.release()
+    cv2.destroyAllWindows()
